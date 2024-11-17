@@ -1,0 +1,71 @@
+<!-- frontend/templates/produtos/cadastrar.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="title">Cadastrar Novo Produto</h2>
+    
+    <form id="formProduto" class="form-container" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="nome">Nome do Produto</label>
+            <input type="text" id="nome" name="nome" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="descricao">Descrição</label>
+            <textarea id="descricao" name="descricao" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="preco">Preço</label>
+            <input type="number" id="preco" name="preco" class="form-control" step="0.01">
+        </div>
+        
+        <div class="form-group">
+            <label for="categoria">Categoria</label>
+            <select id="categoria" name="categoria" class="form-control" required>
+                <option value="">Selecione uma categoria</option>
+                <option value="blussas">Blusas</option>
+                <option value="calcas">Calças</option>
+                <option value="vestidos">Vestidos</option>
+                <option value="croppeds">Croppeds</option>
+                <option value="regatas">Regatas</option>
+                <option value="camisas">Camisas</option>
+                <option value="variadas">Variadas</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="fotos">Fotos do Produto</label>
+            <input type="file" id="fotos" name="fotos" class="form-control" multiple accept="image/*">
+            <div id="preview" class="image-preview"></div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Cadastrar Produto</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/produtos.js') }}"></script>
+<script>
+    const produtosManager = new ProdutosManager();
+    
+    // Preview de imagens
+    document.getElementById('fotos').addEventListener('change', function(e) {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = '';
+        
+        for (const file of this.files) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'preview-image';
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

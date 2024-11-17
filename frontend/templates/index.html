@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <!-- Cabeçalho e Filtros -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Produtos Cadastrados</h2>
+        <div class="search-filters d-flex gap-2">
+            <input type="text" id="searchInput" class="form-control" placeholder="Buscar produto...">
+            <select id="categoryFilter" class="form-select">
+                <option value="">Todas Categorias</option>
+                <option value="blusa">Blusas</option>
+                <option value="calca">Calças</option>
+                <option value="vestido">Vestidos</option>
+                <option value="acessorio">Acessórios</option>
+                <option value="camisas">Camisas</option>
+                <option value="variadas">Variadas</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Grid de Produtos -->
+    <div class="row row-cols-1 row-cols-md-3 g-4" id="productsGrid">
+        {% for produto in produtos %}
+        <div class="col produto-card" data-categoria="{{ produto.categoria }}" data-nome="{{ produto.nome }}">
+            <div class="card h-100 shadow-sm hover-effect">
+                <!-- Cabeçalho do Card com Imagem -->
+                <div class="card-img-container">
+                    {% if produto.fotos %}
+                    <img src="{{ url_for('static', filename='uploads/' + produto.fotos.split(',')[0]) }}" 
+                         class="card-img-top" 
+                         alt="{{ produto.nome }}"
+                         style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    {% if produto.preco %}
+                    <div class="price-tag">
+                        R$ {{ "%.2f"|format(produto.preco) }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Corpo do Card -->
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ produto.nome }}</h5>
+                    <p class="card-text text-muted small">{{ produto.descricao }}</p>
+                    <span class="badge bg-secondary">{{ produto.categoria }}</span>
+                </div>
+
+                <!-- Rodapé do Card -->
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="showQRCode('{{ produto.id }}', '{{ produto.nome }}', '{{ produto.qr_code }}')">
+                            Ver QR Code
+                        </button>
+                        <a href="/editar/{{ produto.id }}" class="btn btn-sm btn-outline-secondary">
+                            Editar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    <nav aria-label="Paginação de produtos" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if produtos.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ produtos.prev_num }}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </span>
+                </li>
+            {% endif %}
+
+            {% for num in produtos.iter_pages() %}
+                {% if num %}
+                    {% if num == produtos.page %}
+                        <li class="page-item active" aria-current="page">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if produtos.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ produtos.next_num }}" aria-label="Próximo">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Próximo">
+                        <span aria-hidden="true">&raquo;</span>
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Modal QR Code (Único) -->
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="qrModalTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="qrCodeImage" src="" alt="QR Code" style="width: 200px;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtro de produtos
+function filterProducts() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value.toLowerCase();
+    const cards = document.querySelectorAll('.produto-card');
+
+    cards.forEach(card => {
+        const productName = card.dataset.nome.toLowerCase();
+        const productCategory = card.dataset.categoria.toLowerCase();
+        const matchesSearch = productName.includes(searchTerm);
+        const matchesCategory = !category || productCategory === category;
+        
+        card.style.display = matchesSearch && matchesCategory ? 'block' : 'none';
+    });
+}
+
+// Gerenciamento do Modal QR Code
+let currentModal = null;
+
+function showQRCode(id, nome, qrCode) {
+    const modal = document.getElementById('qrModal');
+    const modalTitle = document.getElementById('qrModalTitle');
+    const qrCodeImage = document.getElementById('qrCodeImage');
+    
+    modalTitle.textContent = `QR Code - ${nome}`;
+    qrCodeImage.src = `data:image/png;base64,${qrCode}`;
+    
+    // Garante que qualquer modal anterior seja fechado corretamente
+    if (currentModal) {
+        currentModal.hide();
+    }
+    
+    // Cria e mostra o novo modal
+    currentModal = new bootstrap.Modal(modal, {
+        backdrop: 'static',
+        keyboard: true
+    });
+    
+    // Adiciona listener para limpar a referência quando o modal for fechado
+    modal.addEventListener('hidden.bs.modal', function () {
+        currentModal = null;
+        // Limpa o backdrop manualmente se necessário
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        // Remove a classe modal-open do body
+        document.body.classList.remove('modal-open');
+        // Remove o estilo inline do body
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+    }, { once: true });
+    
+    currentModal.show();
+}
+
+// Event listeners para filtros
+document.getElementById('searchInput').addEventListener('input', filterProducts);
+document.getElementById('categoryFilter').addEventListener('change', filterProducts);
+
+// Cleanup de modal ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove qualquer backdrop residual
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+    // Remove classes residuais do body
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
+});
+</script>
+{% endblock %}

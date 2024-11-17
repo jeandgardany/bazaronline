@@ -1,0 +1,59 @@
+# Ambiente virtual
+venv/
+env/
+*.pyc
+
+# Arquivos de configuração
+instance/
+*.cfg
+*.env
+
+# Logs
+*.log
+logs/
+
+# Arquivos de banco de dados
+*.db
+*.sqlite
+
+# Arquivos de cache
+__pycache__/
+.pytest_cache/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Diretórios de uploads (ajuste conforme necessário)
+frontend/static/uploads/
+
+# Arquivos de IDE/editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de dependências
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Arquivos de distribuição/build
+dist/
+build/
+*.egg-info/
+
+# Ignorar arquivos de áudio
+frontend/static/audio/
+
+# Ignorar arquivos de vídeo
+frontend/static/video/
+
+# Arquivos de imagens
+*.jpg
+*.jpeg
+*.webp
+*.png
+*.gif
+
+node_modules/
+package-lock.json

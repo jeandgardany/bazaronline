@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Editar Produto</h2>
+    
+    <form id="formEditarProduto" class="form-group" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="nome">Nome do Produto</label>
+            <input type="text" class="form-control" id="nome" name="nome" 
+                   value="{{ produto.nome }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="descricao">Descrição</label>
+            <textarea class="form-control" id="descricao" name="descricao" 
+                      rows="3">{{ produto.descricao }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="preco">Preço</label>
+            <input type="number" class="form-control" id="preco" name="preco" 
+                   step="0.01" value="{{ produto.preco }}">
+        </div>
+
+        <div class="form-group">
+            <label for="categoria">Categoria</label>
+            <select class="form-control" id="categoria" name="categoria" required>
+                <option value="">Selecione uma categoria</option>
+                <option value="blusas" {% if produto.categoria == 'blusas' %}selected{% endif %}>Blusas</option>
+                <option value="calcas" {% if produto.categoria == 'calcas' %}selected{% endif %}>Calças</option>
+                <option value="vestidos" {% if produto.categoria == 'vestidos' %}selected{% endif %}>Vestidos</option>
+                <option value="croppeds" {% if produto.categoria == 'croppeds' %}selected{% endif %}>Croppeds</option>
+                <option value="regatas" {% if produto.categoria == 'regatas' %}selected{% endif %}>Regatas</option>
+                <option value="camisas" {% if produto.categoria == 'camisas' %}selected{% endif %}>Camisas</option>
+                <option value="variadas" {% if produto.categoria == 'variadas' %}selected{% endif %}>Variadas</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="fotos">Fotos</label>
+            <input type="file" class="form-control" id="fotos" name="fotos" multiple accept="image/*">
+            <div id="preview" class="edit-images-container">
+                {% if produto.fotos %}
+                    {% for foto in produto.fotos.split(',') %}
+                        <img src="{{ url_for('static', filename='uploads/' + foto) }}" 
+                             alt="Foto produto" 
+                             class="edit-preview-image">
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="/produtos" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/produtos.js') }}"></script>
+<script>
+    // Preview de novas imagens
+    document.getElementById('fotos').addEventListener('change', function(e) {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = '';
+        
+        for (const file of this.files) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'preview-image';
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Envio do formulário
+    document.getElementById('formEditarProduto').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch(`/api/produtos/{{ produto.id }}`, {
+                method: 'PUT',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('Produto atualizado com sucesso!');
+                window.location.href = '/produtos';
+            } else {
+                throw new Error('Erro ao atualizar produto');
+            }
+        } catch (error) {
+            alert(error.message);
+        }
+    });
+    // Preview de novas imagens
+    document.getElementById('fotos').addEventListener('change', function(e) {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = '';
+        
+        for (const file of this.files) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'edit-preview-image';  // Usando a nova classe
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+</script>
+{% endblock %}

@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="title mb-0">Histórico de Vendas</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary" onclick="historicoVendas.carregarVendas('hoje')">Vendas do Dia</button>
+            <button class="btn btn-outline-secondary" onclick="historicoVendas.carregarVendas('mes')">Vendas do Mês</button>
+            <button class="btn btn-outline-secondary" onclick="historicoVendas.carregarVendas('ano')">Vendas do Ano</button>
+        </div>
+    </div>
+
+    <!-- Resumo de Vendas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total de Vendas (Hoje)</h6>
+                    <h3 class="card-text" id="totalVendasHoje">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total de Vendas (Mês)</h6>
+                    <h3 class="card-text" id="totalVendasMes">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Quantidade de Vendas</h6>
+                    <h3 class="card-text" id="qtdVendas">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Ticket Médio</h6>
+                    <h3 class="card-text" id="ticketMedio">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Vendas -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Venda ID</th>
+                            <th>Produtos</th>
+                            <th>Total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historicoVendas">
+                        {% for venda in vendas %}
+                        <tr>
+                            <td>{{ venda.data_venda.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>#{{ venda.id }}</td>
+                            <td>
+                                {% for item in venda.itens %}
+                                    {{ item.produto.nome }} ({{ item.quantidade }})<br>
+                                {% endfor %}
+                            </td>
+                            <td>R$ {{ "%.2f"|format(venda.total) }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-info" 
+                                            onclick="historicoVendas.visualizarVenda({{ venda.id }})">
+                                        Detalhes
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            onclick="historicoVendas.editarVenda({{ venda.id }})">
+                                        Editar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="historicoVendas.excluirVenda({{ venda.id }})">
+                                        Excluir
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes da Venda -->
+    <div class="modal fade" id="modalDetalhesVenda" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalhes da Venda</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detalhesVendaContent">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="modalConfirmarExclusao" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta venda?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+class HistoricoVendas {
+    constructor() {
+        this.initializeEventListeners();
+        this.carregarResumo();
+        this.vendaParaExcluir = null;
+    }
+
+    initializeEventListeners() {
+        document.getElementById('btnConfirmarExclusao')?.addEventListener('click', () => {
+            this.confirmarExclusao();
+        });
+    }
+
+    async carregarVendas(periodo) {
+        try {
+            const response = await fetch(`/api/vendas/historico/${periodo}`);
+            if (!response.ok) throw new Error('Erro ao carregar vendas');
+            
+            const vendas = await response.json();
+            this.atualizarTabela(vendas);
+            this.carregarResumo();
+        } catch (error) {
+            console.error('Erro:', error);
+            this.showNotification('Erro', 'Erro ao carregar vendas', 'danger');
+        }
+    }
+
+    atualizarTabela(vendas) {
+        const tbody = document.getElementById('historicoVendas');
+        tbody.innerHTML = vendas.map(venda => `
+            <tr>
+                <td>${new Date(venda.data_venda).toLocaleString('pt-BR')}</td>
+                <td>#${venda.id}</td>
+                <td>${venda.itens.map(item => 
+                    `${item.produto.nome} (${item.quantidade})`
+                ).join('<br>')}</td>
+                <td>R$ ${venda.total.toFixed(2)}</td>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-info" 
+                                onclick="historicoVendas.visualizarVenda(${venda.id})">
+                            Detalhes
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary"
+                                onclick="historicoVendas.editarVenda(${venda.id})">
+                            Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="historicoVendas.excluirVenda(${venda.id})">
+                            Excluir
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async carregarResumo() {
+        try {
+            const response = await fetch('/api/vendas/resumo');
+            if (!response.ok) throw new Error('Erro ao carregar resumo');
+            
+            const resumo = await response.json();
+            
+            document.getElementById('totalVendasHoje').textContent = 
+                `R$ ${resumo.totalHoje.toFixed(2)}`;
+            document.getElementById('totalVendasMes').textContent = 
+                `R$ ${resumo.totalMes.toFixed(2)}`;
+            document.getElementById('qtdVendas').textContent = 
+                resumo.quantidade;
+            document.getElementById('ticketMedio').textContent = 
+                `R$ ${resumo.ticketMedio.toFixed(2)}`;
+        } catch (error) {
+            console.error('Erro:', error);
+            this.showNotification('Erro', 'Erro ao carregar resumo', 'danger');
+        }
+    }
+
+    async visualizarVenda(id) {
+        try {
+            const response = await fetch(`/api/vendas/historico/${id}`);
+            if (!response.ok) throw new Error('Erro ao carregar detalhes');
+            
+            const venda = await response.json();
+            
+            const content = document.getElementById('detalhesVendaContent');
+            content.innerHTML = `
+                <div class="venda-details">
+                    <h6>Venda #${venda.id}</h6>
+                    <p>Data: ${new Date(venda.data_venda).toLocaleString('pt-BR')}</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Qtd</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${venda.itens.map(item => `
+                                    <tr>
+                                        <td>${item.produto.nome}</td>
+                                        <td>${item.quantidade}</td>
+                                        <td>R$ ${item.valor_total.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2">Total</th>
+                                    <th>R$ ${venda.total.toFixed(2)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalhesVenda'));
+            modal.show();
+        } catch (error) {
+            console.error('Erro:', error);
+            this.showNotification('Erro', 'Erro ao carregar detalhes da venda', 'danger');
+        }
+    }
+
+    editarVenda(id) {
+        // Redireciona para a página de edição
+        window.location.href = `/vendas/editar/${id}`;
+    }
+
+    excluirVenda(id) {
+        this.vendaParaExcluir = id;
+        const modal = new bootstrap.Modal(document.getElementById('modalConfirmarExclusao'));
+        modal.show();
+    }
+
+    async confirmarExclusao() {
+        if (!this.vendaParaExcluir) return;
+
+        try {
+            const response = await fetch(`/api/vendas/delete/${this.vendaParaExcluir}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('Erro ao excluir venda');
+
+            this.showNotification('Sucesso', 'Venda excluída com sucesso', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalConfirmarExclusao')).hide();
+            this.carregarVendas('hoje'); // Recarrega a lista atual
+        } catch (error) {
+            console.error('Erro:', error);
+            this.showNotification('Erro', 'Erro ao excluir venda', 'danger');
+        } finally {
+            this.vendaParaExcluir = null;
+        }
+    }
+
+    showNotification(title, message, type = 'success') {
+        const toastLiveExample = document.getElementById('notificationToast');
+        if (!toastLiveExample) return;
+
+        const toast = new bootstrap.Toast(toastLiveExample, { delay: 3000 });
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMessage').textContent = message;
+        toastLiveExample.className = `toast text-bg-${type}`;
+        toast.show();
+    }
+}
+
+// Inicializa o histórico
+const historicoVendas = new HistoricoVendas();
+</script>
+{% endblock %}

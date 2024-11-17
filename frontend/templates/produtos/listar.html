@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Produtos Cadastrados</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Preço</th>
+                <th>Categoria</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="produtos-list">
+            <!-- Produtos serão carregados dinamicamente via JavaScript -->
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Função para carregar produtos da API
+async function carregarProdutos() {
+    try {
+        const response = await fetch('/api/produtos/');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar produtos');
+        }
+        const produtos = await response.json();
+
+        const tbody = document.getElementById('produtos-list');
+        tbody.innerHTML = '';
+
+        produtos.forEach(produto => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${produto.id}</td>
+                <td>${produto.nome}</td>
+                <td>${produto.descricao}</td>
+                <td>R$ ${produto.preco ? produto.preco.toFixed(2) : 'N/A'}</td>
+                <td>${produto.categoria}</td>
+                <td>
+                    <a href="/editar/${produto.id}" class="btn btn-warning btn-sm">Editar</a>
+                    <button onclick="excluirProduto(${produto.id})" class="btn btn-danger btn-sm">Excluir</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao carregar produtos.');
+    }
+}
+
+// Função para excluir um produto
+async function excluirProduto(id) {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
+        try {
+            const response = await fetch(`/api/produtos/${id}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                alert('Produto excluído com sucesso!');
+                carregarProdutos();
+            } else {
+                alert('Erro ao excluir produto.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao excluir produto.');
+        }
+    }
+}
+
+// Carregar produtos ao carregar a página
+document.addEventListener('DOMContentLoaded', carregarProdutos);
+</script>
+{% endblock %}

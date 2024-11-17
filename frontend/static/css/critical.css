@@ -1,0 +1,88 @@
+/* frontend/static/css/critical.css */
+
+/* Layout Base */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    flex: 1;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Correções de Layout */
+.cart-container {
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+}
+
+.cart-items {
+    min-height: 50px;
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+/* Melhorias de Performance */
+.navbar {
+    will-change: transform;
+}
+
+.cart-item {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Efeitos de Hover */
+.social-icons a {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.social-icons a:hover {
+    opacity: 0.8;
+}
+
+/* Prevenção de Layout Shift */
+.cart-container,
+.produto-card,
+.form-container {
+    contain: content;
+}
+
+/* Prevenção de FOUC (Flash of Unstyled Content) */
+.navbar,
+.container,
+footer {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+html.loading .navbar,
+html.loading .container,
+html.loading footer {
+    opacity: 0;
+}
+
+/* Melhorias de Acessibilidade */
+a:focus,
+button:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Screen Reader Only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
