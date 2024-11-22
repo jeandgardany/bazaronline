@@ -34,15 +34,31 @@ def create_app():
         # Rotas principais
         @app.route('/')
         def index():
-            """Página inicial com listagem de produtos paginados"""
+            """Página inicial com listagem de produtos paginados e filtros"""
             page = request.args.get('page', 1, type=int)
-            produtos = Produto.query.order_by(Produto.data_cadastro.desc()).paginate(page=page, per_page=9, error_out=False)
+            search = request.args.get('search', '').strip()
+            category = request.args.get('category', '').strip()
+            
+            # Query base
+            query = Produto.query
+            
+            # Aplicar filtros
+            if search:
+                query = query.filter(Produto.nome.ilike(f'%{search}%'))
+            if category:
+                query = query.filter(Produto.categoria.ilike(category))
+            
+            # Ordenar e paginar
+            produtos = (query
+                       .order_by(Produto.data_cadastro.desc())
+                       .paginate(page=page, per_page=9, error_out=False))
+            
             return render_template('index.html', produtos=produtos)
         
         @app.route('/cadastrar')
         def cadastrar():
             """Página de cadastro de produtos"""
-            categorias = ['blusa', 'calca', 'vestido', 'cropped', 'regata']
+            categorias = ['blusas', 'calcas', 'vestidos', 'croppeds', 'regatas', 'camisas', 'variadas']
             return render_template('produtos/cadastrar.html', categorias=categorias)
             
         @app.route('/vendas')
@@ -61,10 +77,10 @@ def create_app():
         def editar_produto(id):
             """Página de edição de produto"""
             produto = Produto.query.get_or_404(id)
-            categorias = ['blusa', 'calca', 'vestido', 'cropped', 'regata']
+            categorias = ['blusas', 'calcas', 'vestidos', 'croppeds', 'regatas', 'camisas', 'variadas']
             return render_template('produtos/editar.html', 
-                                 produto=produto,
-                                 categorias=categorias)
+                                produto=produto,
+                                categorias=categorias)
   
         @app.route('/historico')
         def historico():
